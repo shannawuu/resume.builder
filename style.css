@@ -95,6 +95,12 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 
 @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
 
 .hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0.35rem 0; }
+
+.upload-row { display: flex; gap: 0.6rem; align-items: center; margin: 0 0 0.45rem; }
+.file-btn { display: inline-block; }
+.upload-status { font-size: 0.82rem; color: var(--ink-soft); }
+.upload-status.ok { color: var(--ok); font-weight: 600; }
+.upload-status.err { color: var(--error); font-weight: 600; }
 .error { color: var(--error); font-weight: 600; white-space: pre-wrap; }
 
 /* buttons */
@@ -216,6 +222,17 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 
   overflow-x: auto;
 }
 .page {
+  /* typography vars — overridden per-document by the model's style_spec */
+  --body-font: Calibri, Carlito, "Helvetica Neue", Arial, sans-serif;
+  --head-font: var(--body-font);
+  --base-pt: 10.5pt;
+  --name-pt: 17pt;
+  --h2-pt: 11pt;
+  --lh: 1.32;
+  --h2-transform: uppercase;
+  --h2-border: 1px solid #555;
+  --doc-accent: #111;
+
   width: 8.5in;
   height: 11in;
   margin: 0 auto;
@@ -224,25 +241,27 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 
   box-shadow: 0 3px 14px rgba(0,0,0,0.25);
   padding: 0.55in 0.6in;
   overflow: hidden;
-  font-family: Calibri, Carlito, "Helvetica Neue", Arial, sans-serif;
-  font-size: 10.5pt;
-  line-height: 1.32;
+  font-family: var(--body-font);
+  font-size: var(--base-pt);
+  line-height: var(--lh);
 }
 .page:focus { outline: 2px solid var(--accent); }
 
 /* ATS-safe resume typography (single column, standard headings) */
-.page h1 { font-size: 17pt; margin: 0 0 2pt; letter-spacing: 0.02em; }
-.page p.contact { margin: 0 0 8pt; font-size: 9.5pt; color: #333; }
+.page h1 { font-family: var(--head-font); font-size: var(--name-pt); color: var(--doc-accent); margin: 0 0 2pt; letter-spacing: 0.02em; }
+.page p.contact { margin: 0 0 8pt; font-size: calc(var(--base-pt) - 1pt); color: #333; }
 .page h2 {
-  font-size: 11pt;
-  text-transform: uppercase;
+  font-family: var(--head-font);
+  font-size: var(--h2-pt);
+  color: var(--doc-accent);
+  text-transform: var(--h2-transform);
   letter-spacing: 0.06em;
-  border-bottom: 1px solid #555;
+  border-bottom: var(--h2-border);
   margin: 10pt 0 4pt;
   padding-bottom: 1pt;
 }
-.page h3 { font-size: 10.5pt; margin: 6pt 0 0; }
-.page p.meta { margin: 0 0 2pt; font-size: 9.5pt; color: #333; font-style: italic; }
+.page h3 { font-size: var(--base-pt); margin: 6pt 0 0; }
+.page p.meta { margin: 0 0 2pt; font-size: calc(var(--base-pt) - 1pt); color: #333; font-style: italic; }
 .page p { margin: 2pt 0; }
 .page ul { margin: 2pt 0 4pt; padding-left: 16pt; }
 .page li { margin: 1.5pt 0; }

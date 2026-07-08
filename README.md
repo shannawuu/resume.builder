@@ -17,8 +17,10 @@ Afterwards the resume and cover letter are **fully editable in place**, with a l
 
 1. Get an Anthropic API key at [platform.claude.com](https://platform.claude.com/).
 2. Open the site, paste the key in **step 0** (stored only in your browser's localStorage).
-3. Paste your resume text (and optionally a longer CV) in **step 1** — saved locally, one-time.
+3. **Upload your resume as PDF or Word (.docx)** — or paste the text — in **step 1** (optionally also a longer CV). PDFs are sent to Claude natively so it sees your actual layout; .docx files are text-extracted in the browser and their real font names/sizes are read from the file as style hints.
 4. Paste a job link in **step 2**, hit **Fetch posting** (or paste the description manually — some sites like LinkedIn block automatic fetching), then **Tailor my resume**.
+
+**Formatting matching:** the final resume is rendered in typography matched to your original document — closest web-safe font stack, font sizes, heading casing/underlines, and accent color — while staying single-column and ATS-safe. Pasted-text-only runs get a clean professional default.
 
 Job-link fetching uses the free [r.jina.ai](https://r.jina.ai) reader to get around browser CORS limits.
 

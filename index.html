@@ -34,17 +34,30 @@
   <section class="card">
     <h2><span class="step-num">1</span> Your resume &amp; CV</h2>
     <div class="card-body">
-      <p class="hint">Paste the full text of your current resume. Optionally add your longer CV / master experience list — the tailor picks the most valuable experiences from <em>both</em> for each job. Saved locally so you only do this once.</p>
+      <p class="hint">Upload your resume as a <strong>PDF or Word (.docx)</strong> — the final resume will match your original's formatting and fonts. Or just paste the text. Optionally add your longer CV / master experience list — the tailor picks the most valuable experiences from <em>both</em> for each job.</p>
       <div class="two-col">
         <div>
           <label for="resumeText">Resume (required)</label>
-          <textarea id="resumeText" rows="12" placeholder="Paste your current resume text here…"></textarea>
+          <div class="upload-row">
+            <label class="btn secondary file-btn">📄 Upload PDF / DOCX
+              <input type="file" id="resumeFile" accept=".pdf,.docx,.txt" hidden />
+            </label>
+            <span class="upload-status" id="resumeUploadStatus"></span>
+          </div>
+          <textarea id="resumeText" rows="12" placeholder="…or paste your current resume text here."></textarea>
         </div>
         <div>
           <label for="cvText">CV / master experience list (optional)</label>
-          <textarea id="cvText" rows="12" placeholder="Longer CV, extra projects, older roles, publications — anything the tailor can mine for relevant material…"></textarea>
+          <div class="upload-row">
+            <label class="btn secondary file-btn">📄 Upload PDF / DOCX
+              <input type="file" id="cvFile" accept=".pdf,.docx,.txt" hidden />
+            </label>
+            <span class="upload-status" id="cvUploadStatus"></span>
+          </div>
+          <textarea id="cvText" rows="12" placeholder="…or paste extra projects, older roles, publications — anything the tailor can mine."></textarea>
         </div>
       </div>
+      <p class="hint">Pasted/extracted text is saved in your browser. Uploaded PDFs are held in memory only — re-attach after a page reload.</p>
     </div>
   </section>
 

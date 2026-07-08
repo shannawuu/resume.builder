@@ -125,8 +125,25 @@ const SCHEMA_FINAL = {
     },
     ats_notes: { type: "array", items: { type: "string" }, description: "What was changed to stop the scroll / pass the ATS" },
     resume_html: { type: "string", description: "The complete final one-page resume as simple HTML per the given spec" },
+    style_spec: {
+      type: "object",
+      description: "Typography matching the candidate's ORIGINAL resume document as closely as possible with web-safe fonts. If the original was plain pasted text with no file, use a clean professional default.",
+      properties: {
+        font_family_css: { type: "string", description: "CSS font-family stack closest to the original body font, e.g. 'Garamond, \"Times New Roman\", serif' or 'Calibri, Arial, sans-serif'" },
+        heading_font_family_css: { type: "string", description: "CSS stack for the name + section headings; same as body if the original uses one font" },
+        base_font_pt: { type: "number", description: "Body font size in pt, typically 9.5-11.5" },
+        name_font_pt: { type: "number", description: "Candidate-name font size in pt" },
+        heading_font_pt: { type: "number", description: "Section-heading size in pt" },
+        line_height: { type: "number", description: "Unitless line-height, typically 1.15-1.4" },
+        heading_uppercase: { type: "boolean", description: "true if the original's section headings are ALL-CAPS" },
+        heading_underline: { type: "boolean", description: "true if the original uses horizontal rules / underlined section headings" },
+        accent_color: { type: "string", description: "Hex color used for name/headings in the original, or '#111111' if black-and-white" },
+      },
+      required: ["font_family_css", "heading_font_family_css", "base_font_pt", "name_font_pt", "heading_font_pt", "line_height", "heading_uppercase", "heading_underline", "accent_color"],
+      additionalProperties: false,
+    },
   },
-  required: ["skipped_sections", "ats_notes", "resume_html"],
+  required: ["skipped_sections", "ats_notes", "resume_html", "style_spec"],
   additionalProperties: false,
 };
 
@@ -148,6 +165,109 @@ const SCHEMA_RECHECK = {
   required: ["match_score", "remaining_issues"],
   additionalProperties: false,
 };
+
+// ── file uploads (PDF sent to Claude natively; DOCX text-extracted) ──
+const uploads = { resume: null, cv: null }; // {kind:'pdf',name,base64} | {kind:'docx',name,styleHints}
+
+for (const slot of ["resume", "cv"]) {
+  $(slot + "File").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) handleUpload(slot, f);
+    e.target.value = ""; // allow re-selecting the same file
+  });
+}
+
+function setUploadStatus(slot, msg, cls = "") {
+  const el = $(slot + "UploadStatus");
+  el.textContent = msg;
+  el.className = "upload-status " + cls;
+}
+
+async function handleUpload(slot, file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const ta = $(slot + "Text");
+  try {
+    if (ext === "pdf") {
+      if (file.size > 25 * 1024 * 1024) throw new Error("PDF is over 25 MB — export a smaller one.");
+      setUploadStatus(slot, "Reading PDF…");
+      const base64 = await fileToBase64(file);
+      uploads[slot] = { kind: "pdf", name: file.name, base64 };
+      ta.value = "";
+      store.set(slot === "resume" ? "resume" : "cv", "");
+      ta.placeholder = `📄 ${file.name} attached — the AI reads the PDF directly, including its fonts and layout. Add optional extra notes here.`;
+      setUploadStatus(slot, `✓ ${file.name} attached — formatting will be matched`, "ok");
+    } else if (ext === "docx") {
+      setUploadStatus(slot, "Extracting text from Word file…");
+      const buf = await file.arrayBuffer();
+      const [{ default: mammoth }, { default: JSZip }] = await Promise.all([
+        import("https://esm.sh/mammoth"),
+        import("https://esm.sh/jszip"),
+      ]);
+      const { value: text } = await mammoth.extractRawText({ arrayBuffer: buf });
+      if (!text.trim()) throw new Error("No text found in that .docx.");
+      const styleHints = await sniffDocxStyles(JSZip, buf);
+      uploads[slot] = { kind: "docx", name: file.name, styleHints };
+      ta.value = text.trim();
+      store.set(slot === "resume" ? "resume" : "cv", ta.value);
+      setUploadStatus(slot, `✓ ${file.name} extracted${styleHints ? " — fonts detected: " + styleHints.fonts.join(", ") : ""}`, "ok");
+    } else if (ext === "txt") {
+      ta.value = (await file.text()).trim();
+      store.set(slot === "resume" ? "resume" : "cv", ta.value);
+      uploads[slot] = null;
+      setUploadStatus(slot, `✓ ${file.name} loaded`, "ok");
+    } else {
+      throw new Error("Use .pdf, .docx, or .txt (old binary .doc isn't supported — re-save as .docx).");
+    }
+  } catch (err) {
+    uploads[slot] = null;
+    setUploadStatus(slot, "✗ " + err.message, "err");
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(",")[1]);
+    r.onerror = () => reject(new Error("Couldn't read the file."));
+    r.readAsDataURL(file);
+  });
+}
+
+// pull real font names + sizes out of the docx XML as style hints
+async function sniffDocxStyles(JSZip, buf) {
+  try {
+    const zip = await JSZip.loadAsync(buf);
+    const xml =
+      ((await zip.file("word/styles.xml")?.async("string")) || "") +
+      ((await zip.file("word/document.xml")?.async("string")) || "");
+    const count = {};
+    for (const m of xml.matchAll(/w:ascii="([^"]+)"/g)) count[m[1]] = (count[m[1]] || 0) + 1;
+    const fonts = Object.entries(count).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([f]) => f);
+    const sizes = [...new Set([...xml.matchAll(/w:sz w:val="(\d+)"/g)].map((m) => +m[1] / 2))]
+      .filter((s) => s >= 7 && s <= 30).sort((a, b) => a - b);
+    if (!fonts.length && !sizes.length) return null;
+    return { fonts, sizes };
+  } catch { return null; }
+}
+
+function pdfBlock(upload, title) {
+  return {
+    type: "document",
+    source: { type: "base64", media_type: "application/pdf", data: upload.base64 },
+    title,
+  };
+}
+
+function styleHintText() {
+  const parts = [];
+  for (const slot of ["resume", "cv"]) {
+    const u = uploads[slot];
+    if (u?.kind === "docx" && u.styleHints) {
+      parts.push(`The original ${slot} .docx uses font(s): ${u.styleHints.fonts.join(", ") || "unknown"}${u.styleHints.sizes?.length ? "; font sizes (pt): " + u.styleHints.sizes.join(", ") : ""}.`);
+    }
+  }
+  return parts.join("\n");
+}
 
 // ── conversation state ──────────────────────────────────────────
 let client = null;
@@ -228,7 +348,7 @@ async function runPipeline() {
   const jd = $("jdText").value.trim();
 
   try {
-    if (!resume) throw new UserError("Paste your resume in step 1 first.");
+    if (!resume && !uploads.resume) throw new UserError("Upload or paste your resume in step 1 first.");
     if (!jd) throw new UserError("Fetch or paste the job description in step 2 first.");
     client = makeClient();
   } catch (e) { return showError(e); }
@@ -248,25 +368,30 @@ async function runPipeline() {
   try {
     // ── Stage 1: senior recruiter analysis ──
     setStage("analyze", "running");
-    messages.push({
-      role: "user",
-      content:
+    const blocks = [];
+    if (uploads.resume?.kind === "pdf") blocks.push(pdfBlock(uploads.resume, "Candidate's resume — ORIGINAL FILE. Note its fonts, heading style, and layout: the final resume must match this formatting."));
+    if (uploads.cv?.kind === "pdf") blocks.push(pdfBlock(uploads.cv, "Candidate's extended CV — original file"));
+    const hints = styleHintText();
+    blocks.push({
+      type: "text",
+      text:
 `Here are my materials.
 
 <resume>
-${resume}
+${uploads.resume?.kind === "pdf" ? "(attached above as a PDF — my original resume file)" + (resume ? "\nExtra notes: " + resume : "") : resume}
 </resume>
 
 <cv_extended>
-${cv || "(none provided — use the resume only)"}
+${uploads.cv?.kind === "pdf" ? "(attached above as a PDF)" + (cv ? "\nExtra notes: " + cv : "") : (cv || "(none provided — use the resume only)")}
 </cv_extended>
-
+${hints ? "\n<original_formatting_hints>\n" + hints + "\n</original_formatting_hints>\n" : ""}
 <job_description>
 ${jd}
 </job_description>
 
 Act as a senior recruiter for the company in the job description. Analyze my resume against the job description and give me a match score out of 100, the top 5 missing keywords, and the 3 red flags a hiring manager would spot in under 10 seconds.`,
     });
+    messages.push({ role: "user", content: blocks });
     analysis = await callClaude(SCHEMA_ANALYSIS);
     renderAnalysis(analysis);
     setStage("analyze", "done");
@@ -305,10 +430,13 @@ For anything I left blank or don't know, proceed WITHOUT that data — do not in
 
 Then produce the COMPLETE final resume — every section, not just experience — selecting the most valuable content so it fits on one US Letter page.
 
-${RESUME_HTML_SPEC}`,
+${RESUME_HTML_SPEC}
+
+Also fill style_spec so the final resume LOOKS like my original document: if my resume was attached as a PDF, study its typography (serif vs sans, font identity, sizes, all-caps vs title-case headings, rules/underlines, any accent color) and pick the closest widely-available CSS font stack. If font hints from a .docx were provided, use those font names first in the stack. If I only pasted plain text, choose a clean professional default.`,
     });
     const s3 = await callClaude(SCHEMA_FINAL);
     renderAts(s3);
+    applyStyleSpec(s3.style_spec);
     renderResume(s3.resume_html);
     setStage("ats", "done");
 
@@ -388,6 +516,30 @@ function renderAts(s3) {
 function renderResume(html) {
   $("resumePage").innerHTML = sanitize(html);
   requestAnimationFrame(updateFitBadge);
+}
+
+// apply the model's typography spec (matched to the uploaded original) to the page
+function applyStyleSpec(spec) {
+  if (!spec) return;
+  const cleanFont = (s) => String(s).replace(/[^\w\s,"'-]/g, "").slice(0, 120);
+  const pt = (n, lo, hi, fb) => (typeof n === "number" && n >= lo && n <= hi ? n : fb);
+  const vars = {
+    "--body-font": cleanFont(spec.font_family_css),
+    "--head-font": cleanFont(spec.heading_font_family_css),
+    "--base-pt": pt(spec.base_font_pt, 8, 13, 10.5) + "pt",
+    "--name-pt": pt(spec.name_font_pt, 12, 26, 17) + "pt",
+    "--h2-pt": pt(spec.heading_font_pt, 9, 15, 11) + "pt",
+    "--lh": pt(spec.line_height, 1, 1.7, 1.32),
+    "--h2-transform": spec.heading_uppercase ? "uppercase" : "none",
+    "--h2-border": spec.heading_underline ? "1px solid #555" : "none",
+    "--doc-accent": /^#[0-9a-fA-F]{3,8}$/.test(spec.accent_color || "") ? spec.accent_color : "#111",
+  };
+  for (const page of [$("resumePage"), $("coverPage")]) {
+    for (const [k, v] of Object.entries(vars)) page.style.setProperty(k, v);
+  }
+  // cover letter: inherit the body font but keep letter sizing
+  $("coverPage").style.setProperty("--base-pt", "11pt");
+  $("coverPage").style.setProperty("--lh", "1.45");
 }
 
 function renderCover(text, a) {
