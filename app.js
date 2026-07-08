@@ -326,6 +326,7 @@ ${RESUME_HTML_SPEC}`,
     $("outputCard").hidden = false;
     $("outputCard").scrollIntoView({ behavior: "smooth" });
   } catch (e) {
+    document.querySelectorAll(".stages li.running").forEach((li) => li.classList.remove("running"));
     showError(e);
   } finally {
     $("tailorBtn").disabled = false;
