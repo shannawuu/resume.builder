@@ -1,0 +1,280 @@
+/* ── Resume Tailor ─────────────────────────────────────────────── */
+:root {
+  --ink: #1c2430;
+  --ink-soft: #55606e;
+  --paper: #f6f4ef;
+  --card: #ffffff;
+  --line: #e3dfd6;
+  --accent: #0e6e63;
+  --accent-soft: #e3f0ee;
+  --warn: #b3541e;
+  --error: #a52a2a;
+  --ok: #2e7d32;
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 1.25rem; }
+
+/* header */
+.app-header {
+  background: var(--ink);
+  color: #f2efe8;
+  padding: 2.2rem 0 2rem;
+  border-bottom: 4px solid var(--accent);
+}
+.app-header h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.1rem;
+  letter-spacing: 0.01em;
+}
+.app-header h1 span { color: #7fd1c5; font-style: italic; }
+.tagline { margin: 0.4rem 0 0; color: #c9c4b8; max-width: 46rem; }
+
+/* cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 1.4rem 0;
+  overflow: hidden;
+}
+.card > h2, .card > summary {
+  margin: 0;
+  padding: 0.9rem 1.2rem;
+  font-size: 1.05rem;
+  font-family: Georgia, serif;
+  border-bottom: 1px solid var(--line);
+  background: #fbfaf7;
+  cursor: default;
+}
+details.card > summary { cursor: pointer; list-style: none; }
+details.card > summary::-webkit-details-marker { display: none; }
+.card-body { padding: 1.1rem 1.2rem 1.3rem; }
+
+.step-num {
+  display: inline-block;
+  width: 1.55rem; height: 1.55rem;
+  line-height: 1.55rem;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-family: system-ui, sans-serif;
+  margin-right: 0.5rem;
+}
+
+/* form bits */
+label { display: block; font-weight: 600; font-size: 0.9rem; margin: 0.6rem 0 0.25rem; }
+textarea, input[type="url"], input[type="password"], input[type="text"] {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font: inherit;
+  color: var(--ink);
+  background: #fffdf9;
+}
+textarea { resize: vertical; }
+textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.row { display: flex; gap: 0.6rem; align-items: center; margin: 0.4rem 0; }
+.row input { flex: 1; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0.35rem 0; }
+.error { color: var(--error); font-weight: 600; white-space: pre-wrap; }
+
+/* buttons */
+.btn {
+  font: inherit;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 120ms ease;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary.big { font-size: 1.05rem; padding: 0.7rem 1.4rem; }
+.btn.secondary { background: var(--accent-soft); color: var(--accent); border-color: #c4ddd9; }
+.btn.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); }
+.actions-row { margin-top: 1rem; }
+
+/* pipeline stages */
+.stages { list-style: none; padding: 0; margin: 0 0 1rem; }
+.stages li { padding: 0.35rem 0; color: var(--ink-soft); }
+.stages .dot {
+  display: inline-block;
+  width: 0.8rem; height: 0.8rem;
+  border-radius: 50%;
+  background: var(--line);
+  margin-right: 0.55rem;
+}
+.stages li.running { color: var(--ink); font-weight: 600; }
+.stages li.running .dot { background: var(--warn); animation: pulse 1s infinite alternate; }
+.stages li.done { color: var(--ink); }
+.stages li.done .dot { background: var(--ok); }
+@keyframes pulse { from { transform: scale(0.8); } to { transform: scale(1.15); } }
+
+/* analysis */
+.analysis-grid { display: grid; grid-template-columns: 150px 1fr; gap: 1.2rem; align-items: start; margin-top: 0.6rem; }
+@media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
+.score-box {
+  background: var(--accent-soft);
+  border: 1px solid #c4ddd9;
+  border-radius: 10px;
+  text-align: center;
+  padding: 1rem 0.5rem;
+}
+.score { font-size: 2.6rem; font-weight: 700; color: var(--accent); font-family: Georgia, serif; }
+.score-label { font-size: 0.75rem; color: var(--ink-soft); }
+.analysis-grid h3, #atsPanel h3, #questionsPanel h3, #recheckPanel h3 {
+  font-size: 0.95rem; margin: 0.6rem 0 0.35rem; font-family: Georgia, serif;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip {
+  background: #fdf1e7;
+  border: 1px solid #ecd3bd;
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-size: 0.85rem;
+}
+.redflags { margin: 0.2rem 0 0; padding-left: 1.2rem; }
+.redflags li { margin: 0.3rem 0; }
+.redflags .rf-title { font-weight: 700; }
+
+/* questions */
+#questionsPanel {
+  margin-top: 1rem;
+  border: 2px dashed var(--warn);
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fffaf4;
+}
+.question-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  margin: 0.6rem 0;
+}
+.question-card .q { font-weight: 600; }
+.question-card .why { font-size: 0.8rem; color: var(--ink-soft); margin: 0.15rem 0 0.4rem; }
+.question-card textarea { min-height: 2.6rem; }
+
+/* ats notes */
+#atsPanel { margin-top: 1rem; }
+#atsNotes li { margin: 0.3rem 0; }
+
+/* tabs */
+.tabs { display: flex; gap: 0.4rem; margin-bottom: 0.9rem; }
+.tab {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  background: #efece5;
+  border-radius: 8px 8px 0 0;
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.tab.active { background: var(--card); color: var(--ink); font-weight: 600; border-color: var(--accent); }
+
+.output-toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.spacer { flex: 1; }
+
+.fit-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+}
+.fit-badge.ok { background: #e6f2e6; color: var(--ok); border: 1px solid #bcd9bc; }
+.fit-badge.over { background: #fdeaea; color: var(--error); border: 1px solid #efc4c4; }
+
+/* ── the printable page ───────────────────────────────────────── */
+.page-frame {
+  background: #d8d4ca;
+  padding: 1.4rem;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.page {
+  width: 8.5in;
+  height: 11in;
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.25);
+  padding: 0.55in 0.6in;
+  overflow: hidden;
+  font-family: Calibri, Carlito, "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.32;
+}
+.page:focus { outline: 2px solid var(--accent); }
+
+/* ATS-safe resume typography (single column, standard headings) */
+.page h1 { font-size: 17pt; margin: 0 0 2pt; letter-spacing: 0.02em; }
+.page p.contact { margin: 0 0 8pt; font-size: 9.5pt; color: #333; }
+.page h2 {
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #555;
+  margin: 10pt 0 4pt;
+  padding-bottom: 1pt;
+}
+.page h3 { font-size: 10.5pt; margin: 6pt 0 0; }
+.page p.meta { margin: 0 0 2pt; font-size: 9.5pt; color: #333; font-style: italic; }
+.page p { margin: 2pt 0; }
+.page ul { margin: 2pt 0 4pt; padding-left: 16pt; }
+.page li { margin: 1.5pt 0; }
+
+/* cover letter page */
+.page.cover { font-size: 11pt; line-height: 1.45; }
+.page.cover p { margin: 0 0 10pt; }
+
+#recheckPanel {
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  background: #fbfaf7;
+}
+
+.app-footer { color: var(--ink-soft); font-size: 0.8rem; text-align: center; padding: 1rem 0 2.5rem; }
+
+/* ── print: only the active page ──────────────────────────────── */
+@media print {
+  body * { visibility: hidden; }
+  .page-frame { padding: 0; background: none; }
+  .printing, .printing * { visibility: visible; }
+  .printing {
+    position: absolute;
+    left: 0; top: 0;
+    width: 8.5in;
+    height: auto;
+    min-height: 11in;
+    box-shadow: none;
+    margin: 0;
+    overflow: visible;
+  }
+}
+@page { size: letter; margin: 0; }

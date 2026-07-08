@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resume Tailor — ATS-ready resume &amp; cover letter from a job link</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="wrap">
+    <h1>Resume<span>Tailor</span></h1>
+    <p class="tagline">Paste a job link → get a recruiter-graded, ATS-safe, one-page resume and a tailored cover letter. Nothing invented — it asks you when it needs facts.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ══════════ STEP 0 · API KEY ══════════ -->
+  <details class="card settings" id="settingsCard" open>
+    <summary><span class="step-num">0</span> Settings — Anthropic API key</summary>
+    <div class="card-body">
+      <p class="hint">Runs entirely in your browser. Your key is stored only in this browser's <code>localStorage</code> and sent only to <code>api.anthropic.com</code>. Get a key at <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a>. Don't use this on a shared computer.</p>
+      <div class="row">
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+        <button id="saveKey" class="btn secondary">Save key</button>
+      </div>
+      <p class="hint" id="keyStatus"></p>
+    </div>
+  </details>
+
+  <!-- ══════════ STEP 1 · YOUR DOCUMENTS ══════════ -->
+  <section class="card">
+    <h2><span class="step-num">1</span> Your resume &amp; CV</h2>
+    <div class="card-body">
+      <p class="hint">Paste the full text of your current resume. Optionally add your longer CV / master experience list — the tailor picks the most valuable experiences from <em>both</em> for each job. Saved locally so you only do this once.</p>
+      <div class="two-col">
+        <div>
+          <label for="resumeText">Resume (required)</label>
+          <textarea id="resumeText" rows="12" placeholder="Paste your current resume text here…"></textarea>
+        </div>
+        <div>
+          <label for="cvText">CV / master experience list (optional)</label>
+          <textarea id="cvText" rows="12" placeholder="Longer CV, extra projects, older roles, publications — anything the tailor can mine for relevant material…"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ STEP 2 · THE JOB ══════════ -->
+  <section class="card">
+    <h2><span class="step-num">2</span> The job</h2>
+    <div class="card-body">
+      <div class="row">
+        <input type="url" id="jobUrl" placeholder="https://…  (link to the job posting)" />
+        <button id="fetchJd" class="btn secondary">Fetch posting</button>
+      </div>
+      <p class="hint" id="fetchStatus">Fetch pulls the page text automatically. If a site blocks it (LinkedIn often does), just paste the job description below.</p>
+      <label for="jdText">Job description text</label>
+      <textarea id="jdText" rows="10" placeholder="Job description appears here after fetching — or paste it yourself."></textarea>
+      <div class="row actions-row">
+        <button id="tailorBtn" class="btn primary big">Tailor my resume →</button>
+        <button id="resetBtn" class="btn ghost">Start over</button>
+      </div>
+      <p class="error" id="pipelineError" hidden></p>
+    </div>
+  </section>
+
+  <!-- ══════════ PIPELINE PROGRESS ══════════ -->
+  <section class="card" id="pipelineCard" hidden>
+    <h2><span class="step-num">3</span> Tailoring pipeline</h2>
+    <div class="card-body">
+      <ol class="stages">
+        <li id="stage-analyze"><span class="dot"></span> Senior-recruiter analysis — match score, missing keywords, red flags</li>
+        <li id="stage-rewrite"><span class="dot"></span> Rewrite experience — Google XYZ formula, no invented facts</li>
+        <li id="stage-ats"><span class="dot"></span> ATS filter + hiring-manager scan — fix what gets skipped</li>
+        <li id="stage-cover"><span class="dot"></span> Tailored cover letter</li>
+      </ol>
+
+      <!-- Recruiter analysis results -->
+      <div id="analysisPanel" hidden>
+        <div class="analysis-grid">
+          <div class="score-box">
+            <div class="score" id="matchScore">–</div>
+            <div class="score-label">match score<br/>(before tailoring)</div>
+          </div>
+          <div>
+            <h3>Top missing keywords</h3>
+            <div class="chips" id="missingKeywords"></div>
+            <h3>Red flags a hiring manager spots in &lt;10s</h3>
+            <ul class="redflags" id="redFlags"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clarifying questions -->
+      <div id="questionsPanel" hidden>
+        <h3>❓ The tailor needs a few facts from you</h3>
+        <p class="hint">It will <strong>not</strong> invent numbers or accomplishments. Answer what you can — leave anything blank and it will proceed without that data.</p>
+        <div id="questionsList"></div>
+        <button id="submitAnswers" class="btn primary">Submit answers &amp; continue →</button>
+      </div>
+
+      <!-- ATS notes -->
+      <div id="atsPanel" hidden>
+        <h3>ATS / hiring-manager scan notes</h3>
+        <ul id="atsNotes"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ OUTPUT ══════════ -->
+  <section class="card" id="outputCard" hidden>
+    <h2><span class="step-num">4</span> Review &amp; edit</h2>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" data-tab="resume">Resume</button>
+        <button class="tab" data-tab="cover">Cover letter</button>
+      </div>
+
+      <div id="tab-resume" class="tab-panel">
+        <div class="output-toolbar">
+          <span class="fit-badge" id="fitBadge">…</span>
+          <span class="spacer"></span>
+          <button id="recheckBtn" class="btn secondary">Re-score my edits</button>
+          <button id="copyResume" class="btn secondary">Copy text</button>
+          <button id="downloadResume" class="btn secondary">Download .txt</button>
+          <button id="printResume" class="btn primary">Print / Save PDF</button>
+        </div>
+        <p class="hint">✏️ Click anywhere on the page below and edit freely — it's your resume. The badge above tells you live whether it still fits on one page.</p>
+        <div class="page-frame">
+          <div class="page" id="resumePage" contenteditable="true" spellcheck="true"></div>
+        </div>
+        <div id="recheckPanel" hidden>
+          <h3>Re-score of your edited resume</h3>
+          <p><strong>Score: <span id="recheckScore"></span>/100</strong></p>
+          <ul id="recheckIssues"></ul>
+        </div>
+      </div>
+
+      <div id="tab-cover" class="tab-panel" hidden>
+        <div class="output-toolbar">
+          <span class="spacer"></span>
+          <button id="copyCover" class="btn secondary">Copy text</button>
+          <button id="downloadCover" class="btn secondary">Download .txt</button>
+          <button id="printCover" class="btn primary">Print / Save PDF</button>
+        </div>
+        <p class="hint">✏️ Editable too — tweak the voice so it sounds like you.</p>
+        <div class="page-frame">
+          <div class="page cover" id="coverPage" contenteditable="true" spellcheck="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    <p>All processing happens between your browser and the Claude API — nothing is uploaded anywhere else. Model: Claude Opus 4.8.</p>
+  </footer>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
