@@ -96,6 +96,25 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 
 
 .hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0.35rem 0; }
 
+.mode-row { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 0.8rem; }
+.mode-option {
+  display: flex; gap: 0.55rem; align-items: flex-start;
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.6rem 0.8rem; cursor: pointer; font-size: 0.9rem;
+}
+.mode-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.mode-option input { margin-top: 0.2rem; }
+
+#manualPanel {
+  margin: 0 0 1rem;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  padding: 1rem;
+  background: #f2f8f7;
+}
+#manualPanel textarea#manualPrompt { background: #fff; font-size: 0.8rem; }
+#manualPanel .btn { margin-right: 0.4rem; text-decoration: none; display: inline-block; }
+
 .upload-row { display: flex; gap: 0.6rem; align-items: center; margin: 0 0 0.45rem; }
 .file-btn { display: inline-block; }
 .upload-status { font-size: 0.82rem; color: var(--ink-soft); }

@@ -25,6 +25,23 @@ $("saveKey").addEventListener("click", () => {
   updateKeyStatus();
 });
 
+// ── run mode: "manual" (Claude Pro / free chat, copy-paste) or "api" ──
+function runMode() { return store.get("mode") || "manual"; }
+function updateModeUI() {
+  const manual = runMode() === "manual";
+  $("modeManual").checked = manual;
+  $("modeApi").checked = !manual;
+  $("apiKeyRow").hidden = manual;
+  $("manualModeHint").hidden = !manual;
+}
+for (const id of ["modeManual", "modeApi"]) {
+  $(id).addEventListener("change", (e) => {
+    if (e.target.checked) store.set("mode", e.target.value);
+    updateModeUI();
+  });
+}
+updateModeUI();
+
 function updateKeyStatus() {
   $("keyStatus").textContent = store.get("apiKey")
     ? "✓ Key saved in this browser."
@@ -274,7 +291,13 @@ let client = null;
 let messages = [];
 let analysis = null;
 
+let manualSystemSent = false;
+
 async function callClaude(schema) {
+  return runMode() === "manual" ? manualCall(schema) : apiCall(schema);
+}
+
+async function apiCall(schema) {
   const resp = await client.messages.create({
     model: MODEL,
     max_tokens: 16000,
@@ -293,6 +316,65 @@ async function callClaude(schema) {
   if (!text) throw new Error("Empty response from the model.");
   return JSON.parse(text);
 }
+
+// ── manual mode: the user relays prompts through their own claude.ai chat ──
+async function manualCall(schema) {
+  const last = messages[messages.length - 1];
+  const bodyText = typeof last.content === "string"
+    ? last.content
+    : last.content.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+
+  let prompt = bodyText;
+  if (!manualSystemSent) {
+    prompt = SYSTEM_PROMPT + "\n\n---\n\n" + prompt;
+  }
+  prompt += `\n\nIMPORTANT: Reply with ONLY a single JSON object — no prose before or after, no markdown code fences — that validates against this JSON Schema:\n${JSON.stringify(schema)}`;
+
+  const parsed = await collectManualReply(prompt, !manualSystemSent);
+  manualSystemSent = true;
+  messages.push({ role: "assistant", content: JSON.stringify(parsed) });
+  return parsed;
+}
+
+function collectManualReply(prompt, isFirstStep) {
+  return new Promise((resolve) => {
+    $("manualPrompt").value = prompt;
+    $("manualReply").value = "";
+    $("manualError").hidden = true;
+    $("manualAttachHint").hidden = !(isFirstStep && (uploads.resume?.kind === "pdf" || uploads.cv?.kind === "pdf"));
+    $("manualPanel").hidden = false;
+    $("manualPanel").scrollIntoView({ behavior: "smooth" });
+
+    const btn = $("manualContinue");
+    const handler = () => {
+      try {
+        const parsed = parseLooseJson($("manualReply").value);
+        btn.removeEventListener("click", handler);
+        $("manualPanel").hidden = true;
+        resolve(parsed);
+      } catch {
+        $("manualError").hidden = false;
+        $("manualError").textContent =
+          "That doesn't look like the JSON reply — paste Claude's entire response (it should start with { and end with }). If Claude answered in prose, tell it: \"reply with only the JSON object\" and paste the new reply.";
+      }
+    };
+    btn.addEventListener("click", handler);
+  });
+}
+
+// tolerate code fences / stray prose around the JSON object
+function parseLooseJson(raw) {
+  const s = raw.indexOf("{");
+  const e = raw.lastIndexOf("}");
+  if (s === -1 || e <= s) throw new Error("no JSON object found");
+  return JSON.parse(raw.slice(s, e + 1));
+}
+
+$("copyManualPrompt").addEventListener("click", () => {
+  navigator.clipboard.writeText($("manualPrompt").value);
+  $("copyManualPrompt").textContent = "✓ Copied";
+  setTimeout(() => ($("copyManualPrompt").textContent = "Copy prompt"), 1500);
+});
 
 // ── fetch job description from a link ──────────────────────────
 $("fetchJd").addEventListener("click", async () => {
@@ -350,7 +432,7 @@ async function runPipeline() {
   try {
     if (!resume && !uploads.resume) throw new UserError("Upload or paste your resume in step 1 first.");
     if (!jd) throw new UserError("Fetch or paste the job description in step 2 first.");
-    client = makeClient();
+    if (runMode() === "api") client = makeClient();
   } catch (e) { return showError(e); }
 
   store.set("resume", resume);
@@ -358,9 +440,10 @@ async function runPipeline() {
 
   // reset state + UI
   messages = [];
+  manualSystemSent = false;
   $("pipelineCard").hidden = false;
   $("outputCard").hidden = true;
-  for (const p of ["analysisPanel", "questionsPanel", "atsPanel", "recheckPanel"]) $(p).hidden = true;
+  for (const p of ["analysisPanel", "questionsPanel", "atsPanel", "recheckPanel", "manualPanel"]) $(p).hidden = true;
   for (const s of ["analyze", "rewrite", "ats", "cover"]) setStage(s, null);
   $("tailorBtn").disabled = true;
   $("pipelineCard").scrollIntoView({ behavior: "smooth" });
@@ -378,11 +461,11 @@ async function runPipeline() {
 `Here are my materials.
 
 <resume>
-${uploads.resume?.kind === "pdf" ? "(attached above as a PDF — my original resume file)" + (resume ? "\nExtra notes: " + resume : "") : resume}
+${uploads.resume?.kind === "pdf" ? "(attached to this message as a PDF — my original resume file; note its formatting)" + (resume ? "\nExtra notes: " + resume : "") : resume}
 </resume>
 
 <cv_extended>
-${uploads.cv?.kind === "pdf" ? "(attached above as a PDF)" + (cv ? "\nExtra notes: " + cv : "") : (cv || "(none provided — use the resume only)")}
+${uploads.cv?.kind === "pdf" ? "(attached to this message as a PDF)" + (cv ? "\nExtra notes: " + cv : "") : (cv || "(none provided — use the resume only)")}
 </cv_extended>
 ${hints ? "\n<original_formatting_hints>\n" + hints + "\n</original_formatting_hints>\n" : ""}
 <job_description>
@@ -585,7 +668,7 @@ $("resumePage").addEventListener("input", () => requestAnimationFrame(updateFitB
 
 // ── re-score edited resume ──────────────────────────────────────
 $("recheckBtn").addEventListener("click", async () => {
-  if (!client || !messages.length) return;
+  if (!messages.length || (runMode() === "api" && !client)) return;
   $("recheckBtn").disabled = true;
   $("recheckBtn").textContent = "Scoring…";
   try {

@@ -13,10 +13,14 @@ A single static page (no build, no server) that runs entirely in your browser an
 
 Afterwards the resume and cover letter are **fully editable in place**, with a live "fits on one page" badge, a **Re-score my edits** button (the recruiter grades your edited version), copy/`.txt` download, and **Print / Save PDF** in US Letter format.
 
+## Two ways to run it
+
+- **Claude Pro / free chat mode (default, $0):** the site prepares each prompt; you copy-paste it into your own [claude.ai](https://claude.ai) chat and paste the reply back. Uses your existing Pro (or free) subscription — no API key, no extra cost. Keep the whole run in one claude.ai chat; if you uploaded a PDF, attach it to the first message there.
+- **API key mode (automatic):** enter an Anthropic API key and the pipeline runs itself (~$0.30–$1.00 per job). Note: API credits are separate from a Claude Pro subscription.
+
 ## Setup
 
-1. Get an Anthropic API key at [platform.claude.com](https://platform.claude.com/).
-2. Open the site, paste the key in **step 0** (stored only in your browser's localStorage).
+1. Open the site and pick a mode in **step 0**. For API mode, get a key at [platform.claude.com](https://platform.claude.com/) (stored only in your browser's localStorage).
 3. **Upload your resume as PDF or Word (.docx)** — or paste the text — in **step 1** (optionally also a longer CV). PDFs are sent to Claude natively so it sees your actual layout; .docx files are text-extracted in the browser and their real font names/sizes are read from the file as style hints.
 4. Paste a job link in **step 2**, hit **Fetch posting** (or paste the description manually — some sites like LinkedIn block automatic fetching), then **Tailor my resume**.
 

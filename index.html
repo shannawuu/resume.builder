@@ -19,14 +19,27 @@
 
   <!-- ══════════ STEP 0 · API KEY ══════════ -->
   <details class="card settings" id="settingsCard" open>
-    <summary><span class="step-num">0</span> Settings — Anthropic API key</summary>
+    <summary><span class="step-num">0</span> Settings — how it runs</summary>
     <div class="card-body">
-      <p class="hint">Runs entirely in your browser. Your key is stored only in this browser's <code>localStorage</code> and sent only to <code>api.anthropic.com</code>. Get a key at <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a>. Don't use this on a shared computer.</p>
-      <div class="row">
-        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
-        <button id="saveKey" class="btn secondary">Save key</button>
+      <div class="mode-row">
+        <label class="mode-option">
+          <input type="radio" name="runMode" value="manual" id="modeManual" />
+          <span><strong>Claude Pro / free chat</strong> — $0. The site prepares each prompt; you copy-paste it into your own <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> chat and paste the reply back. Uses your Pro subscription's limits.</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="runMode" value="api" id="modeApi" />
+          <span><strong>API key</strong> — fully automatic, pay-per-use (~$0.30–$1.00 per job). Needs an API key with credits from <a href="https://platform.claude.com/" target="_blank" rel="noopener">platform.claude.com</a> (separate from a Pro subscription).</span>
+        </label>
       </div>
-      <p class="hint" id="keyStatus"></p>
+      <div id="apiKeyRow">
+        <p class="hint">Your key is stored only in this browser's <code>localStorage</code> and sent only to <code>api.anthropic.com</code>. Don't use this on a shared computer.</p>
+        <div class="row">
+          <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+          <button id="saveKey" class="btn secondary">Save key</button>
+        </div>
+        <p class="hint" id="keyStatus"></p>
+      </div>
+      <p class="hint" id="manualModeHint" hidden>💡 Open one claude.ai chat and keep using the <strong>same chat</strong> for the whole run — each step builds on the previous one.</p>
     </div>
   </details>
 
@@ -90,6 +103,23 @@
         <li id="stage-ats"><span class="dot"></span> ATS filter + hiring-manager scan — fix what gets skipped</li>
         <li id="stage-cover"><span class="dot"></span> Tailored cover letter</li>
       </ol>
+
+      <!-- Manual (Claude Pro / free chat) exchange -->
+      <div id="manualPanel" hidden>
+        <h3>📋 Run this step in your claude.ai chat</h3>
+        <p class="hint">1. Copy the prompt. &nbsp;2. Paste it into the <strong>same claude.ai chat</strong> you've been using for this run. &nbsp;3. Paste Claude's <strong>entire reply</strong> below and hit Continue.</p>
+        <p class="hint" id="manualAttachHint" hidden>📎 You uploaded PDF file(s) — attach them to this first message in claude.ai (paperclip button) so it can read them and match their formatting.</p>
+        <label>Prompt to copy</label>
+        <div class="row">
+          <textarea id="manualPrompt" readonly rows="7"></textarea>
+        </div>
+        <button id="copyManualPrompt" class="btn secondary">Copy prompt</button>
+        <a class="btn ghost" href="https://claude.ai/new" target="_blank" rel="noopener">Open claude.ai ↗</a>
+        <label style="margin-top:0.8rem">Claude's reply (paste the whole thing)</label>
+        <textarea id="manualReply" rows="6" placeholder="Paste Claude's full response here…"></textarea>
+        <p class="error" id="manualError" hidden></p>
+        <button id="manualContinue" class="btn primary">Continue →</button>
+      </div>
 
       <!-- Recruiter analysis results -->
       <div id="analysisPanel" hidden>
